@@ -105,23 +105,6 @@ static int set_light_backlight(struct light_device_t *dev,
     return err;
 }
 
-static int set_light_buttons(struct light_device_t *dev,
-            struct light_state_t const *state)
-{
-    int err = 0;
-    int brightness = rgb_to_brightness(state);
-    /* Hack for stock Samsung roms */
-    if(brightness != 0)
-brightness = 255;
-
-    pthread_mutex_lock(&g_lock);
-    ALOGV("%s(%d)", __FUNCTION__, brightness);
-    err = write_int(BUTTON_FILE, brightness);
-    pthread_mutex_unlock(&g_lock);
-
-    return err;
-}
-
 static int set_light_keyboard(struct light_device_t* dev,
         struct light_state_t const* state)
 {
@@ -133,6 +116,29 @@ static int set_light_keyboard(struct light_device_t* dev,
     err = write_int(KEYBOARD_FILE, on ? 1 : 0);
     pthread_mutex_unlock(&g_lock);
 
+    return err;
+}
+
+static int set_light_buttons(struct light_device_t *dev,
+            struct light_state_t const *state)
+{
+    int err = 0, err2 = 0;
+    int brightness = rgb_to_brightness(state);
+    /* Hack for stock Samsung roms */
+    if(brightness != 0)
+brightness = 255;
+
+    pthread_mutex_lock(&g_lock);
+    ALOGV("%s(%d)", __FUNCTION__, brightness);
+    err = write_int(BUTTON_FILE, brightness);
+    pthread_mutex_unlock(&g_lock);
+    
+    /* Explicitly call this because android isn't. */
+    /* I know it's weird, but it works. */
+    err2 = set_light_keyboard(dev,state);
+    if (err2 && err==0)
+        err = err2;
+    
     return err;
 }
 
